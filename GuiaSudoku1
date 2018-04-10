@@ -1,0 +1,867 @@
+package proyectofinal;
+
+
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import javax.swing.*;
+import proyectofinal.RestrictedTextField;
+
+
+/**
+ *
+ * @author 
+ * @author 
+ * @author 
+ * 
+ */
+public class Interface extends JFrame {
+    
+    protected JTextField[][] txt = new JTextField[9][9];
+    protected JButton solve, reset, example1, example2, example3;
+    protected JOptionPane error;
+
+    public Interface(String titulo) {
+        /**
+         * Crea la interfaz de sudoku (tipografía, color y demás) y los botones.
+         */
+        super(titulo);
+        
+        JPanel panel= new JPanel();
+        JPanel panel1 = new JPanel();
+        JPanel panel2 = new JPanel();
+        JPanel panel3 = new JPanel();
+        
+        panel.setLayout(new GridLayout(9,9));
+        panel1.setLayout(new FlowLayout());
+        panel2.setLayout(new BoxLayout(panel2,BoxLayout.Y_AXIS));
+        panel3.setLayout(new BoxLayout(panel3,BoxLayout.X_AXIS));
+
+        for(int i = 0;i < 9;i++){
+            for(int j = 0;j < 9;j++){
+                txt[i][j]=new JTextField();
+                RestrictedTextField txtR = new RestrictedTextField(txt[i][j]);
+                txt[i][j].setFont(new Font("Serief",Font.BOLD,16));
+                txt[i][j].setHorizontalAlignment(JTextField.CENTER);
+                if(((i/3*3)%2==0 && (j/3*3)%2==0) || ((i/3)*3==3 && (j/3)*3==3)){
+                    txt[i][j].setBackground(new Color(3,102,77));
+                    txt[i][j].setForeground(Color.white);
+                }
+                panel.add(txt[i][j]);
+                txtR.setLimit(1);
+                txtR.setOnlyNums(true);
+            }
+        }
+        solve = new JButton("Resolver");
+        reset = new JButton("Limpiar");
+        example1 = new JButton("Ejemplo 1");
+        example2 = new JButton("Ejemplo 2");
+        example3 = new JButton("Ejemplo 3");
+        error = new JOptionPane();
+        panel3.add(solve);
+        panel3.add(reset);
+        panel1.add(example1);
+        panel1.add(example2);
+        panel1.add(example3);
+        panel2.add(panel);
+        panel2.add(panel3);
+        panel2.add(panel1);
+        add(panel2);
+        
+        setBounds(300, 200, 330, 440);
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setVisible(true);
+    }    
+}
+
+package proyectofinal;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.FileNotFoundException;
+import javax.swing.JOptionPane;
+import proyectofinal.RestrictedTextField;
+
+
+ /**
+ *@author 
+ *@author 
+ *@author 
+ */
+
+public class InterfaceCont extends Interface {
+
+    
+    public InterfaceCont(String titulo) throws FileNotFoundException {
+        /**
+         * Constructur de InterfaceCont (extendido a Interface) implementando los listener a los botones.
+         */
+        super(titulo);
+        solve.addActionListener(new ListenerSolve());
+        reset.addActionListener(new ListenerReset());
+        example1.addActionListener(new ListenerE1());
+        example2.addActionListener(new ListenerE2());
+        example3.addActionListener(new ListenerE3());
+
+    }
+
+    private class ListenerSolve implements ActionListener {
+        /**
+        * Le da acción al botón resolver, resuelve el sudoku utilizando los demás métodos definidios de la clase SudokuSolver.
+        * @param e ActionEvent
+        */
+        public void actionPerformed(ActionEvent e) {
+            int cont = 0;
+            int[][] m = new int[9][9];
+            SudokuGrid sudoku;
+            boolean flag = true;
+
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (txt[i][j].getText().equals("")) {
+                        m[i][j] = 0;
+                    } 
+                    else if (txt[i][j].getText().matches("[1-9]*")) {
+                        m[i][j] = Integer.parseInt(txt[i][j].getText());
+                        cont++;
+                    } 
+                    else {
+                        flag = false;
+                    }
+                }
+            }
+
+            if (flag) {
+                try {
+                    sudoku = new SudokuGrid(m);
+                    SudokuSolver solver = new SudokuSolver(sudoku);
+                    if (solver.tryNextMove(new Position(0, 0))) {
+                        if (cont < 17) {
+                            JOptionPane.showMessageDialog(error, "Este sudoku tiene una o más soluciones, te muestro una.",
+                                    "¡Alerta!", JOptionPane.WARNING_MESSAGE);
+                        }
+                        for (int i = 0; i < 9; i++) {
+                            for (int j = 0; j < 9; j++) {
+                                txt[i][j].setText(sudoku.sudokuGrid[i][j] + "");
+                            }
+                        }
+                    } else {
+                        throw new SudokuNotValidException();
+                    }
+                } catch (SudokuNotValidException snve) {
+                    JOptionPane.showMessageDialog(error, "Lo lamento, este Sudoku no es válido.",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(error, "Lo lamento, este Sudoku no es válido.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
+        }
+
+    }
+
+    private class ListenerReset implements ActionListener {
+        /**
+        * Le da acción al botón limpiar, es decir, se encarga de eliminar los números ingresados en las casillas de sudoku.
+        * @param e ActionEvent
+        */
+        public void actionPerformed(ActionEvent e) {
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    txt[i][j].setEditable(true);
+                    txt[i][j].setText("");
+                }
+            }
+        }
+
+    }
+
+    private class ListenerE1 implements ActionListener {
+        /**
+        * Le da una acción al botón ejemplo 1, es decir, propone una partida especifíca del sudoku.
+        * @param e ActionEvent
+        */
+        public void actionPerformed(ActionEvent e) {
+            try {
+                SudokuGrid sudoku = new SudokuGrid("sudoku.txt");
+                for (int i = 0; i < 9; i++) {
+                    for (int j = 0; j < 9; j++) {
+                        txt[i][j].setEditable(false);
+                        if (sudoku.sudokuGrid[i][j] != 0) {
+                            txt[i][j].setText(sudoku.sudokuGrid[i][j] + "");
+                        } else {
+                            txt[i][j].setText("");
+                        }
+                    }
+                }
+            } catch (FileNotFoundException ex) {
+                System.err.println("Error " + ex);
+                System.exit(-1);
+            }
+        }
+    }
+ 
+    private class ListenerE2 implements ActionListener {
+        /**
+         * Le da una acción al botón ejemplo 2, es decir, propone una partida especifíca del sudoku.
+         * @param e ActionEvent
+         */
+        public void actionPerformed(ActionEvent e) {
+            try {
+                SudokuGrid sudoku = new SudokuGrid("sudoku_1.txt");
+                for (int i = 0; i < 9; i++) {
+                    for (int j = 0; j < 9; j++) {
+                        txt[i][j].setEditable(false);
+                        if (sudoku.sudokuGrid[i][j] != 0) {
+                            txt[i][j].setText(sudoku.sudokuGrid[i][j] + "");
+                        } else {
+                            txt[i][j].setText("");
+                        }
+                    }
+                }
+            } catch (FileNotFoundException ex) {
+                System.err.println("Error " + ex);
+                System.exit(-1);
+            }
+        }
+    }
+
+    private class ListenerE3 implements ActionListener {
+        /**
+         * Le da una acción al botón ejemplo 3,es decir, propone una partida especifíca del sudoku.
+         * @param e ActionEvent
+         */
+        public void actionPerformed(ActionEvent e) {
+            try {
+                SudokuGrid sudoku = new SudokuGrid("sudoku_2.txt");
+                for (int i = 0; i < 9; i++) {
+                    for (int j = 0; j < 9; j++) {
+                        txt[i][j].setEditable(false);
+                        if (sudoku.sudokuGrid[i][j] != 0) {
+                            txt[i][j].setText(sudoku.sudokuGrid[i][j] + "");
+                        } else {
+                            txt[i][j].setText("");
+                        }
+                    }
+                }
+            } catch (FileNotFoundException ex) {
+                System.err.println("Error " + ex);
+                System.exit(-1);
+            }
+
+        }
+
+    }
+
+    public static void main(String[] args) throws FileNotFoundException {
+        InterfaceCont a = new InterfaceCont("Sudoku");
+    }
+
+}
+
+package proyectofinal;
+
+ /**
+ *@author 
+ *@author 
+ *@author 
+ */
+public class Position {
+    public int x,y;
+    
+    /**
+     * Constructor vacio.
+     */
+    public Position() {
+        
+    }
+    
+    /**
+     * Constructor con dos parametros.
+     * @param x int, hace referencia a la ubicación en el "eje de las x" (0-8)
+     * @param y int, hace referencia a la ubicación en el "eje de las y" (0-8)
+     */
+    public Position(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+    /**+
+     * Método para obtener el valor de x.
+     * @return x, int.
+     */
+    public int getX() {
+        return x;
+    }
+    /**
+     * Método para obtener el valor de y.
+     * @return y, int.
+     */
+    public int getY() {
+        return y;
+    }
+    /**
+     * Método para imprimir los datos guardados de los atributos.
+     * @return String
+     */
+    public String toString() {
+        return "Posicion{" + "x=" + x + ", y=" + y + '}';
+    }
+    
+    /**
+     * Método para saber si un objeto es igual a otro objeto Position
+     * @param obj Object
+     * @return boolean
+     */
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Position other = (Position) obj;
+        if (this.x != other.x) {
+            return false;
+        }
+        if (this.y != other.y) {
+            return false;
+        }
+        return true;
+    }
+}
+
+/**
+ * @author Iv·n Ignacio Alvarado DÌaz (Atxy2k)
+ * @atxy2k
+ * http://www.facebook.com/atxy2k
+ * Email: atxy2k@gmail.com
+ * 
+ * Licenced By Creative Commons V3.0
+ * 
+ * http://serprogramador.es
+ * http://ivanalvarado.net
+ * 
+ * @version 1.0
+ * 
+ */
+package proyectofinal;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import javax.swing.JTextField;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.PlainDocument;
+
+public class RestrictedTextField implements KeyListener {
+
+    private JTextField textField;
+    private int limit = 20;
+    private Document defaultDocument;
+    private boolean onlyNums = false;
+    private boolean onlyText = false;
+    private boolean onlyAlphaNumeric = false;
+    private boolean onlyCustomCharacters = false;
+    private boolean acceptSpace = false;
+    private String acceptCharacters = "";
+
+    public RestrictedTextField(JTextField textField) {
+        this.textField = textField;
+        textField.addKeyListener(this);
+        this.defaultDocument = textField.getDocument();
+    }
+
+    public RestrictedTextField(JTextField textField, String acceptCharacters) {
+        this.textField = textField;
+        textField.addKeyListener(this);
+        this.defaultDocument = textField.getDocument();
+        this.acceptCharacters = acceptCharacters.toLowerCase();
+        this.setOnlyCustomCharacters(true);
+    }
+
+    public void setOnlyNums(boolean select) {
+        if (select) {
+            this.onlyText = false;
+            this.onlyAlphaNumeric = false;
+            this.onlyNums = select;
+            this.onlyCustomCharacters = false;
+            this.textField.setDocument(new OnlyNumsDocument());
+        } else {
+            restore();
+        }
+    }
+
+    public void setOnlyText(boolean select) {
+        if (select) {
+            this.onlyNums = false;
+            this.onlyAlphaNumeric = false;
+            this.onlyText = select;
+            this.onlyCustomCharacters = false;
+            this.textField.setDocument(new OnlyTextDocument());
+        } else {
+            restore();
+        }
+    }
+    
+    public void setOnlyAlphaNumeric(boolean select){
+        if (select) {
+            this.onlyNums = false;
+            this.onlyAlphaNumeric = select;
+            this.onlyText = false;
+            this.onlyCustomCharacters = false;
+            this.textField.setDocument(new OnlyAlphanumericDocument());
+        }else
+        {
+            restore();
+        }
+    }
+    
+    public void setOnlyCustomCharacters(boolean select){
+        if (select) {
+            this.onlyNums = false;
+            this.onlyAlphaNumeric = false;
+            this.onlyText = false;
+            this.onlyCustomCharacters = select;
+            this.textField.setDocument(new OnlyCustomDocument());
+        }else
+        {
+            restore();
+        }
+    }
+    
+    public void restore() {
+        this.onlyNums = false;
+        this.onlyText = false;
+        this.textField.setDocument(this.defaultDocument);
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        if (this.textField.getText().length() == this.limit) {
+            e.consume();
+        }
+    }
+    
+    public boolean isOnlyNums() {
+        return this.onlyNums;
+    }
+
+    public boolean isOnlyText() {
+        return this.onlyText;
+    }
+
+    public void keyPressed(KeyEvent e) {
+    }
+
+    public void keyReleased(KeyEvent e) {
+    }
+
+    public int getLimit() {
+        return this.limit;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
+    }
+
+    public void setAcceptSpace(boolean acceptSpace) {
+        this.acceptSpace = acceptSpace;
+    }
+
+    public void setAcceptCharacters(String acceptCharacters) {
+        this.acceptCharacters = acceptCharacters;
+    }
+    
+    public class OnlyNumsDocument extends PlainDocument {
+
+        @Override
+        public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+            StringBuilder builder = new StringBuilder(str);
+            str = builder.reverse().toString();
+            for (int i = 0; i < str.length(); i++) {
+                if (Character.isDigit(str.charAt(i)) || ( acceptSpace==true && Character.isWhitespace(str.charAt(i))))
+                {
+                    super.insertString(offs, Character.toString(str.charAt(i)), a);
+                }
+            }
+            return;
+        }
+    }
+
+    public class OnlyTextDocument extends PlainDocument {
+
+        @Override
+        public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+            StringBuilder builder = new StringBuilder(str);
+            str = builder.reverse().toString();
+            for (int i = 0; i < str.length(); i++) {
+                if (Character.isLetter(str.charAt(i)) || ( acceptSpace==true && Character.isWhitespace(str.charAt(i)))) {
+                    super.insertString(offs, Character.toString(str.charAt(i)), a);
+                }
+            }
+            return;
+        }
+    }
+    
+    public class OnlyAlphanumericDocument extends PlainDocument {
+
+        @Override
+        public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+            StringBuilder builder = new StringBuilder(str);
+            str = builder.reverse().toString();
+            for (int i = 0; i < str.length(); i++) {
+                if (Character.isLetterOrDigit(str.charAt(i)) || ( acceptSpace==true && Character.isWhitespace(str.charAt(i)))) {
+                    super.insertString(offs, str, a);
+                }
+            }
+            return;
+        }
+    }
+    
+    public class OnlyCustomDocument extends PlainDocument {
+
+        @Override
+        public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+            StringBuilder builder = new StringBuilder(str);
+            str = builder.reverse().toString();
+            for (int i = 0; i < str.length(); i++) {
+                if (acceptCharacters.contains(Character.toString(str.charAt(i)).toLowerCase()) || ( acceptSpace==true && Character.isWhitespace(str.charAt(i)))) {
+                    super.insertString(offs, str, a);
+                }
+            }
+            return;
+        }
+    } 
+}
+
+package proyectofinal;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+import proyectofinal.herramientas.ArraySet;
+import proyectofinal.herramientas.SetADT;
+
+ /**
+ *@author Daniel Olmedo Hidalgo
+ *@author Mónica Hernández Martínez
+ *@author Yair Rodríguez Zavaleta
+ */
+public class SudokuGrid {
+    // Conjunto de enteros de 1 a 9 para que se asignaran a cada columna indexada de 0 a 8.
+    private SetADT<Integer>[] col = new ArraySet[9];
+    // Conjunto de enteros de 1 a 9 para que se asignaran a cada renglon indexado de 0 a 8.
+    private SetADT<Integer>[] row = new ArraySet[9];
+    // Conjunto de enteros de 1 a 9 para que se asignaran a cada panel indexado de 0 a 8
+    // contando de izquierda a derecha y de arriba hacia abajo.
+    private SetADT<Integer>[] panel = new ArraySet[9];
+    // Arreglo bidimensioanl de enteros que contiene la solución al problema de Sudoku
+    // La solucion consiste de enteros de 1 a 9 asignados a cada entrada del arreglo tales que
+    // satisfacen las tres condiciones siguientes:
+    // 1. Los numeros no se repiten en cada renglon
+    // 2. Los numeros no se repiten en cada columna
+    // 3. Los numeros no se repiten en cada panel
+    public int[][] sudokuGrid;
+    
+    /**
+     * Constructor de un SudokuGrid apartir de un documento, es decir, para leer del archivo de texto "filename" las entradas del arreglo sudokuGrid
+     * y así establecer la configuración inicial del tablero
+     * @param filename String
+     * @throws FileNotFoundException 
+     */
+    public SudokuGrid(String filename) throws FileNotFoundException {
+        Scanner scan = new Scanner(new File(filename));
+        sudokuGrid = new int[9][9];
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                sudokuGrid[i][j] = scan.nextInt();
+            }
+        }
+        fillRow();
+        fillCol();
+        fillPanel();
+    }
+    
+    /**
+     * Constructor de un SudokuGrid apartir de un arreglo bidimencional, donde este contendrá los número ingresados por el usuario.
+     * @param m int[][]
+     */
+    public SudokuGrid(int[][] m) {
+        sudokuGrid = new int[9][9];
+
+        for (int i = 0; i < m.length; i++) {
+            for (int j = 0; j < m.length; j++) {
+                sudokuGrid[i][j] = m[i][j];
+            }
+        }
+        fillRow();
+        fillCol();
+        fillPanel();
+    }
+    
+    /**
+     * Metodo para encontrar cada uno de los conjuntos de cada columna "col[i], i=0..8"
+     * @throws SudokuNotValidException 
+     */
+    public void fillCol() throws SudokuNotValidException{
+        SetADT<Integer> aux;
+        for (int i = 0; i < 9; i++) {
+            aux = new ArraySet();
+            for (int j = 0; j < 9; j++) {
+                if (sudokuGrid[j][i] > 0&&!aux.contains(sudokuGrid[j][i])&&sudokuGrid[j][i]<10) {
+                    aux.add(sudokuGrid[j][i]);
+                }
+                else if(sudokuGrid[j][i] != 0)
+                    throw new SudokuNotValidException();
+            }
+            col[i] = aux;
+        }
+    }
+    
+    /**
+     * Metodo para encontrar cada uno de los conjuntos de cada renglon "row[i], i=0..8"
+     * @throws SudokuNotValidException 
+     */
+    public void fillRow() throws SudokuNotValidException{
+        SetADT<Integer> aux;
+        for (int i = 0; i < 9; i++) {
+            aux = new ArraySet();
+            for (int j = 0; j < 9; j++) {                
+                if (sudokuGrid[i][j] > 0&&!aux.contains(sudokuGrid[i][j])&&sudokuGrid[i][j]<10) {
+                    aux.add(sudokuGrid[i][j]);
+                }
+                else if(sudokuGrid[i][j] != 0)
+                    throw new SudokuNotValidException();
+            }
+            row[i] = aux;
+        }
+    }
+    
+    /**
+     * Metodo para encontrar cada uno de los conjuntos de cada panel "panel[i], i=0..8"
+     * @throws SudokuNotValidException 
+     */
+    public void fillPanel() throws SudokuNotValidException{
+        SetADT<Integer> aux;
+        for (int i = 0; i < 9; i++) {
+            aux = new ArraySet();
+            for (int j = (i % 3) * 3; j < (i % 3) * 3 + 3; j++) {
+                for (int k = i / 3 * 3; k < i / 3 * 3 + 3; k++) {                                    
+                if (sudokuGrid[k][j] > 0&&!aux.contains(sudokuGrid[k][j])&&sudokuGrid[k][j]<10) {
+                    aux.add(sudokuGrid[k][j]);
+                }
+                else if(sudokuGrid[k][j] != 0)
+                    throw new SudokuNotValidException();
+                }
+            }
+            panel[i] = aux;
+        }
+    }
+    
+    /**
+     * Metodo para obtener la cadena para imprimir el contenido de arreglo "sudokuGrid"
+     * @return 
+     */
+    public String toString() {
+        String result = "\n";
+        for (int row = 0; row < sudokuGrid.length; row++) {
+            for (int column = 0; column < sudokuGrid[row].length; column++) {
+                result += sudokuGrid[row][column] + "";
+            }
+            result += "\n";
+        }
+        return result;
+    }
+    
+    /**
+     * Metodo para verificar que la entrada de "sudokuGrid" en la posicion "pos" esta disponible
+     * @param pos Position.
+     * @return boolean; true si el contenido es igual a 0, false si es diferente de 0.
+     */
+    public boolean isEmpty(Position pos) {
+        return sudokuGrid[pos.getY()][pos.getX()] == 0;
+    }
+    
+    /**
+     * Metodo para verificar que en la posicion "pos" de "sudokuGrid" en se puede asignar el entero "num".
+     * La posicion es valida si "num" no se repite por renglon, columna y panel.
+     * @param pos Position, casilla a verificar.
+     * @param num int, posible número de la casilla pos.
+     * @return boolean; true si es valido el número, false, si no lo es.
+     */
+    public boolean isValid(Position pos, int num) {
+        return (rowValid(pos, num) && colValid(pos, num) && panelValid(pos, num));
+    }
+
+    /**
+     * Metodo que asigna en la posicion "pos" de "sudokuGrid" al entero "num" 
+     * siempre que no sea cero.
+     * @param pos Position, casilla a verificar.
+     * @param num int, número a agregar a la casilla pos.
+     */
+    public void setCell(Position pos, int num) {
+        sudokuGrid[pos.getY()][pos.getX()] = num;
+        if (num != 0) {
+            row[pos.getY()].add(num);
+            col[pos.getX()].add(num);
+            panel[3 * (pos.getY() / 3) + pos.getX() / 3].add(num);
+        }
+    }
+    
+    /**
+     * Metodo para eliminar al entero "num" que se encuentra en la posicion "pos" de "sudokuGrid"
+     * de los conjuntos del renglon "pos.getY()", la columna "pos.getX()" y el panel "3 * (pos.getY() / 3) + pos.getX() / 3"
+     * @param pos Postion, casilla de la que se removera el numero num.
+     * @param num int,número a remover de los conjunto col,row,panel.
+     */
+    public void removeFromSets(Position pos, int num) {
+        row[pos.getY()].remove(num);
+        col[pos.getX()].remove(num);
+        panel[3 * (pos.getY() / 3) + pos.getX() / 3].remove(num);
+    }
+    
+    /**
+     * Metodo para determinar si el renglon dado por la posicion "pos" es valido para el entero "x"
+     * El número es valido si "x" no está aun contenido en el conjunto row" 
+     * @param pos
+     * @param x
+     * @return 
+     */
+    public boolean rowValid(Position pos, int x) {
+        return (!row[pos.getY()].contains(x));
+    }
+    
+    /**
+     * Metodo para determinar si la columna dada por la posicion "pos" es valida para el entero "x"
+     * El número es valido si "x" no está aun contenido en el conjunto col" 
+     * @param pos Position, casilla donde se asignará en numero int x.
+     * @param x int, número de posible adignación an la casilla pos.
+     * @return boolean; true, si x no se encuentra todavía en el conjunto col, false si sí se encutra.
+     */
+    public boolean colValid(Position pos, int x) {
+        return (!col[pos.getX()].contains(x));
+
+     
+    }
+
+    /**
+     * El panel es valido si "x" no es encuentra en el conjunto que corresponde al panel en 
+     * "3 * (pos.getY() / 3) + pos.getX() / 3" 
+     * @param pos Position, casilla donde se asignará en numero int x.
+     * @param x int, número de posible adignación an la casilla pos.
+     * @return boolean; true, si x no se encuentra todavía en el conjunto col, false si sí se encutra.
+     */
+    public boolean panelValid(Position pos, int x) {
+        return !panel[3 * (pos.getY() / 3) + pos.getX() / 3].contains(x);
+    
+    }
+    
+    /**
+     * Metodo para determinar si el problema ya quedo resuelto.
+     * El problema fue resuelto si la posicion de la celda ha avanzado mas alla de la columna 8
+     * @param pos Position, casilla a verificar.
+     * @return boolean; true si su posicion x es mayor a 8, false de ser menor o igal a 8.
+     */
+    public boolean isSolved(Position pos) {
+        return pos.getX() > 8;
+    }
+    
+    /**
+     * Método para encontrar la siguiente casilla vacia, es decir igual a 0.
+     * @param pos Posición a verificar.
+     * @return Position, posición de una casilla, donde el número contenido es igual a 0.
+     */
+    public Position nextEmpty(Position pos) {
+        Position res;
+        int i = 0, j = pos.getY();
+        while (pos.getX() + i < 9 && !isEmpty(new Position(pos.getX() + i, j))) {
+            if (j < 8) {
+                j++;
+            } else {
+                i++;
+                j = 0;
+            }
+        }
+        res = new Position(pos.getX() + i, j);
+        return res;
+    }
+}
+
+
+package proyectofinal;
+
+ /**
+ *@author Daniel Olmedo Hidalgo
+ *@author Mónica Hernández Martínez
+ *@author Yair Rodríguez Zavaleta
+ */
+
+public class SudokuNotValidException extends RuntimeException {
+    /**
+     * Excepción de la solución del sudoku, es decir, el sudoku no es valido, pues no cumple con los lineamientos indicados.
+     * Es decir, se repite uno o más números. 
+     */
+    public SudokuNotValidException(){
+        super("El sudoku no es válido.");
+    }
+}
+
+package proyectofinal;
+
+ /**
+ *@author Daniel Olmedo Hidalgo
+ *@author Mónica Hernández Martínez
+ *@author Yair Rodríguez Zavaleta
+ */
+
+public class SudokuSolver {
+    private SudokuGrid sudoku;
+    
+    /**
+     * Constructor de SudokuSolver a traves de un SudokuGrid
+     * @param sudoku SudokuGrid.
+     */
+    public SudokuSolver(SudokuGrid sudoku) {
+        this.sudoku = sudoku;
+    }
+    
+    /**
+     * Este es el método que resuelve el sudoku, utiliza recursividad para
+     * encontrar la respuesta, se trata de una búsqueda exhaustiva,
+     * es decir, checa por columnas cada número del 1 al 9 para ver si hay 
+     * conflicto con alguna fila o columna.
+     * @param pos Position, casilla (x,y) a verificar y asignar algun número del 1 al 9 si no hay conflcto.
+     * @return  boolean; true, si no hay conflicto con columna,fila o panel, false, si sí lo hay.
+     */
+    public boolean tryNextMove(Position pos) {
+        boolean done = false;
+        Position aux = sudoku.nextEmpty(pos);
+        int cont=0;
+        
+        if (sudoku.isSolved(aux)) {
+            return true;
+        } else {
+            for (int i = 1; i < 10; i++) {         
+                cont++;
+                if (!done && sudoku.isValid(aux, i)) {
+                    sudoku.setCell(aux, i);
+                    if (aux.getY() < 8) {
+                        done = tryNextMove(new Position(aux.getX(), aux.getY() + 1));
+                    } else {
+                        done = tryNextMove(new Position(aux.getX() + 1, 0));
+                    }
+                    if (!done) {
+                        sudoku.removeFromSets(aux, i);
+                    }
+                }
+            }
+            if (!done) {
+                sudoku.setCell(aux, 0);
+            }
+        }
+        return done;
+    }
+}
